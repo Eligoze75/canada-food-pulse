@@ -1,0 +1,23 @@
+name: canada-food-pulse
+
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python=3.12
+  - pandas
+  - numpy
+  - scipy
+  - matplotlib
+  - seaborn
+  - plotly
+  - pip
+  - pip:
+    - dash
+    - dash-bootstrap-components
+    - gunicorn
+  - jupyterlab
+  - ipykernel
+  - ipywidgets
+  - python-dotenv
