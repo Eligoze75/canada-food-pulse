@@ -1,0 +1,109 @@
+city_clean,cuisine,avg_stars,total_reviews,business_count
+Montreal,French,3.81,16080,357
+Montreal,Breakfast & Brunch,3.81,15378,368
+Montreal,Sandwiches,3.78,10126,312
+Montreal,Bakeries,4.12,7166,248
+Montreal,Burgers,3.37,6827,189
+Montreal,Japanese,3.67,5717,171
+Montreal,Italian,3.71,5610,253
+Montreal,Chinese,3.44,5000,190
+Montreal,Pizza,3.47,4840,260
+Montreal,American (Traditional),3.48,4385,80
+Montreal,Seafood,3.67,4198,98
+Montreal,Delis,3.61,4127,71
+Montreal,Diners,3.54,4052,47
+Montreal,Steakhouses,3.51,4028,74
+Montreal,Poutineries,3.76,3634,47
+Montreal,Sushi Bars,3.61,3314,175
+Montreal,Mexican,3.7,2964,96
+Montreal,Mediterranean,3.68,2850,117
+Montreal,Creperies,3.82,2827,49
+Montreal,Middle Eastern,3.6,2815,105
+Montreal,Barbeque,3.57,2771,100
+Montreal,Indian,3.51,2466,108
+Montreal,Tapas/Small Plates,3.8,2449,53
+Montreal,Vietnamese,3.65,2440,152
+Montreal,Comfort Food,3.76,2006,44
+Montreal,Korean,3.86,1778,64
+Montreal,Tapas Bars,3.85,1524,55
+Montreal,Thai,3.34,1392,87
+Montreal,American (New),3.5,1241,21
+Montreal,Soup,3.85,1238,42
+Montreal,Latin American,3.94,1200,51
+Montreal,Greek,3.58,1171,69
+Montreal,Lebanese,3.57,1049,41
+Montreal,Ramen,3.59,1045,17
+Montreal,Spanish,4.0,882,23
+Montreal,Noodles,3.41,626,11
+Montreal,Dim Sum,3.71,592,19
+Montreal,Taiwanese,3.68,509,14
+Montreal,Caribbean,4.06,488,34
+Montreal,Pakistani,3.39,477,28
+Montreal,Chicken Wings,3.21,467,29
+Montreal,Turkish,3.75,290,12
+Montreal,Persian/Iranian,3.68,288,14
+Montreal,Fondue,3.88,207,8
+Montreal,African,3.83,197,15
+Montreal,Hot Pot,4.0,135,4
+Montreal,Filipino,4.3,121,5
+Montreal,Ethiopian,4.0,115,2
+Montreal,Waffles,3.88,64,4
+Montreal,Himalayan/Nepalese,3.67,61,3
+Montreal,Soul Food,4.0,59,4
+Montreal,Szechuan,3.88,48,4
+Montreal,Sri Lankan,4.0,34,2
+Montreal,Cantonese,2.0,21,1
+Toronto,Breakfast & Brunch,3.53,34565,606
+Toronto,Japanese,3.52,34036,491
+Toronto,Italian,3.44,26680,566
+Toronto,Chinese,3.25,21155,559
+Toronto,Sandwiches,3.45,20528,619
+Toronto,Sushi Bars,3.48,17249,342
+Toronto,American (Traditional),3.15,16674,327
+Toronto,Burgers,3.14,16583,418
+Toronto,Bakeries,3.75,16378,510
+Toronto,Pizza,3.2,15862,509
+Toronto,American (New),3.42,15680,166
+Toronto,Seafood,3.45,14910,227
+Toronto,Thai,3.24,14317,275
+Toronto,Mexican,3.31,14299,243
+Toronto,Korean,3.57,12830,240
+Toronto,Comfort Food,3.45,11283,159
+Toronto,Mediterranean,3.49,10387,266
+Toronto,Indian,3.46,10199,291
+Toronto,French,3.73,9368,170
+Toronto,Vietnamese,3.51,9069,185
+Toronto,Barbeque,3.44,9010,182
+Toronto,Tapas/Small Plates,3.67,8919,80
+Toronto,Diners,3.46,8616,171
+Toronto,Middle Eastern,3.48,7575,275
+Toronto,Ramen,3.52,6857,41
+Toronto,Tapas Bars,3.66,6854,76
+Toronto,Steakhouses,3.51,6598,87
+Toronto,Noodles,3.61,5732,61
+Toronto,Greek,3.39,5258,153
+Toronto,Chicken Wings,2.82,4809,191
+Toronto,Caribbean,3.77,4286,153
+Toronto,Dim Sum,3.33,4038,63
+Toronto,Soup,3.61,3739,74
+Toronto,Latin American,3.9,3326,73
+Toronto,Delis,3.5,2513,114
+Toronto,Pakistani,3.3,2231,65
+Toronto,Creperies,3.67,2191,36
+Toronto,Spanish,3.74,2110,27
+Toronto,Poutineries,3.46,1905,38
+Toronto,Taiwanese,3.29,1855,36
+Toronto,Persian/Iranian,3.62,1369,43
+Toronto,Soul Food,3.69,1287,18
+Toronto,Turkish,4.03,1262,36
+Toronto,Ethiopian,4.06,1202,27
+Toronto,African,3.86,1067,35
+Toronto,Filipino,3.32,1054,33
+Toronto,Hot Pot,3.31,928,21
+Toronto,Himalayan/Nepalese,4.0,907,22
+Toronto,Waffles,3.61,737,14
+Toronto,Lebanese,3.57,493,22
+Toronto,Sri Lankan,3.69,85,8
+Toronto,Fondue,3.5,72,2
+Toronto,Cantonese,3.83,38,3
+Toronto,Szechuan,3.0,31,2

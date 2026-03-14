@@ -1,13 +1,3 @@
-"""
-Canada Food Pulse — Main Dash Application Entry Point
-
-Run locally:
-    python app.py
-
-Deploy to Plotly Cloud / Dash Enterprise:
-    The `server` object is exposed below as required.
-"""
-
 import dash
 import dash_bootstrap_components as dbc
 from dash import Dash, dcc, html
@@ -29,19 +19,28 @@ server = app.server  # required for Plotly Cloud deployment
 navbar = dbc.NavbarSimple(
     children=[
         dbc.NavItem(dbc.NavLink("Overview", href="/")),
-        dbc.NavItem(dbc.NavLink("Top Cuisines", href="/cuisines")),
-        dbc.NavItem(dbc.NavLink("Top Businesses", href="/top-businesses")),
         dbc.NavItem(dbc.NavLink("Peak Hours", href="/peak-hours")),
         dbc.NavItem(dbc.NavLink("Map", href="/map")),
     ],
-    brand=html.Span([
-        html.I(className="bi bi-geo-alt-fill me-2"),
-        "Canada Food Pulse",
-    ]),
+    brand=html.Span(
+        [
+            html.Img(
+                src="/assets/canada_leaf.png",
+                height="30px",
+                style={
+                    "marginRight": "8px",
+                    "borderRadius": "50%",
+                    "background": "white",
+                    "padding": "3px",
+                },
+            ),
+            "Canada Food Pulse",
+        ]
+    ),
     brand_href="/",
     color="primary",
     dark=True,
-    className="mb-0 shadow-sm",
+    className="mb-0 shadow-sm cfp-navbar",
     fluid=True,
 )
 
@@ -49,13 +48,16 @@ navbar = dbc.NavbarSimple(
 # Layout
 # ---------------------------------------------------------------------------
 
-app.layout = html.Div([
-    navbar,
-    # Global city filter — shared across all pages via dcc.Store
-    dcc.Store(id="city-store", storage_type="session", data="Both"),
-    # Page content rendered here by Dash Pages
-    dash.page_container,
-], className="app-wrapper")
+app.layout = html.Div(
+    [
+        navbar,
+        # Global city filter — shared across all pages via dcc.Store
+        dcc.Store(id="city-store", storage_type="session", data="Both"),
+        # Page content rendered here by Dash Pages
+        dash.page_container,
+    ],
+    className="app-wrapper",
+)
 
 
 if __name__ == "__main__":

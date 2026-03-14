@@ -1,5 +1,5 @@
 """
-Peak Hours Page — weekday × hour heatmap of check-in traffic.
+Peak Hours Page — weekday × hour heatmap + busiest day bar chart.
 
 Route: /peak-hours
 """
@@ -9,55 +9,58 @@ import pathlib
 import dash
 import dash_bootstrap_components as dbc
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
+import plotly.express as px
 from dash import Input, Output, callback, dcc, html
 
-dash.register_page(__name__, path="/peak-hours", name="Peak Hours", order=3)
+dash.register_page(__name__, path="/peak-hours", name="Peak Hours", order=1)
 
 # ---------------------------------------------------------------------------
 # Data
 # ---------------------------------------------------------------------------
 
 DATA_DIR = pathlib.Path(__file__).parent.parent / "data" / "processed"
-df_heat = pd.read_csv(DATA_DIR / "df_peak_heatmap.csv")
-df_biz = pd.read_csv(DATA_DIR / "df_businesses.csv", low_memory=False)
-df_biz["name"] = df_biz["name"].str.strip('"')
+
+# Load only the columns needed for peak analysis (104k rows, 5 cols — fast)
+df_src = pd.read_csv(
+    DATA_DIR / "yelp_business_data_cleaned.csv",
+    usecols=["categories", "city_clean", "weekday", "peak_hour", "total_checkins"],
+    low_memory=False,
+)
+df_src = df_src.dropna(subset=["weekday", "peak_hour"])
 
 WEEKDAY_ORDER = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-CITIES = ["Toronto", "Montreal"]
+CITIES = ["Both", "Toronto", "Montreal"]
 CITY_COLORS = {"Toronto": "#2c7be5", "Montreal": "#e5522c"}
 
-# Pre-build business options (sorted by name) for the drill-down dropdown
-# Merge peak data onto businesses so we know which have check-in data
-biz_with_checkins = (
-    df_biz[df_biz["total_checkins_all"] > 0]
-    .sort_values("name")[["business_id", "name", "city_clean"]]
-    .dropna(subset=["name"])
-)
+SEGMENT_OPTIONS = [
+    {"label": "All Food & Drink",   "value": "all"},
+    {"label": "Restaurants",        "value": "Restaurants"},
+    {"label": "Cafes & Coffee",     "value": "Cafes"},
+    {"label": "Bars",               "value": "Bars"},
+    {"label": "Fast Food",          "value": "Fast Food"},
+    {"label": "Bakeries",           "value": "Bakeries"},
+    {"label": "Breakfast & Brunch", "value": "Breakfast & Brunch"},
+]
 
-# Parse hour strings to integer for sorting (e.g. "9:00" → 9)
+
 def hour_to_int(h: str) -> int:
     try:
         return int(str(h).split(":")[0])
     except Exception:
         return -1
 
-df_heat["hour_int"] = df_heat["peak_hour"].apply(hour_to_int)
-df_heat = df_heat.sort_values(["city_clean", "weekday", "hour_int"])
 
-# Hour labels for display (0:00 → "12am", 12:00 → "12pm", etc.)
 def fmt_hour(h: int) -> str:
-    if h == 0:
-        return "12am"
-    elif h < 12:
-        return f"{h}am"
-    elif h == 12:
-        return "12pm"
-    else:
-        return f"{h - 12}pm"
+    if h == 0:      return "12am"
+    elif h < 12:    return f"{h}am"
+    elif h == 12:   return "12pm"
+    else:           return f"{h - 12}pm"
+
 
 HOUR_LABELS = {i: fmt_hour(i) for i in range(24)}
+
+df_src["hour_int"] = df_src["peak_hour"].apply(hour_to_int)
 
 # ---------------------------------------------------------------------------
 # Layout
@@ -66,7 +69,7 @@ HOUR_LABELS = {i: fmt_hour(i) for i in range(24)}
 layout = html.Div([
     html.Div([
         html.H2("Peak Hours"),
-        html.P("Understand when businesses are busiest — city-wide traffic patterns by day and hour."),
+        html.P("City-wide traffic patterns — when are restaurants and cafes busiest?"),
     ], className="page-header"),
 
     html.Div([
@@ -74,22 +77,20 @@ layout = html.Div([
         dcc.Dropdown(
             id="peaks-city",
             options=[{"label": c, "value": c} for c in CITIES],
-            value="Toronto",
+            value="Both",
             clearable=False,
             style={"minWidth": "160px"},
         ),
-        html.Label("Drill-down to a specific business (optional)", style={"marginLeft": "1.5rem"}),
+        html.Label("Segment", style={"marginLeft": "1rem"}),
         dcc.Dropdown(
-            id="peaks-business",
-            options=[],
-            value=None,
-            clearable=True,
-            placeholder="All businesses (city-wide)",
-            style={"minWidth": "320px"},
+            id="peaks-segment",
+            options=SEGMENT_OPTIONS,
+            value="all",
+            clearable=False,
+            style={"minWidth": "200px"},
         ),
     ], className="filter-bar"),
 
-    # Main heatmap
     dbc.Row([
         dbc.Col([
             html.Div([
@@ -104,16 +105,20 @@ layout = html.Div([
             ], className="chart-card"),
         ], md=4),
     ]),
-
-    dbc.Row([
-        dbc.Col([
-            html.Div([
-                html.Div("Hourly Traffic — Toronto vs Montreal", className="section-title"),
-                dcc.Graph(id="peaks-hourly-compare", config={"displayModeBar": False}),
-            ], className="chart-card"),
-        ]),
-    ]),
 ], className="page-content")
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def filter_src(city: str, segment: str) -> pd.DataFrame:
+    df = df_src
+    if city != "Both":
+        df = df[df["city_clean"] == city]
+    if segment != "all":
+        df = df[df["categories"].fillna("").str.contains(segment, case=False)]
+    return df
 
 
 # ---------------------------------------------------------------------------
@@ -121,52 +126,28 @@ layout = html.Div([
 # ---------------------------------------------------------------------------
 
 @callback(
-    Output("peaks-business", "options"),
-    Input("peaks-city", "value"),
-)
-def update_business_options(city):
-    df = biz_with_checkins[biz_with_checkins["city_clean"] == city]
-    return [{"label": row["name"], "value": row["business_id"]} for _, row in df.iterrows()]
-
-
-@callback(
     Output("peaks-heatmap", "figure"),
     Output("peaks-heatmap-title", "children"),
     Input("peaks-city", "value"),
-    Input("peaks-business", "value"),
+    Input("peaks-segment", "value"),
 )
-def update_heatmap(city, business_id):
-    if business_id:
-        # Business-level: use the cleaned source data
-        from pathlib import Path
-        src = Path(__file__).parent.parent / "data" / "processed" / "yelp_business_data_cleaned.csv"
-        df_src = pd.read_csv(src, low_memory=False)
-        df_biz_peaks = df_src[df_src["business_id"] == business_id].dropna(subset=["weekday", "peak_hour"])
-        df_plot = (
-            df_biz_peaks.groupby(["weekday", "peak_hour"], as_index=False)
-            .agg(total_checkins=("total_checkins", "sum"))
-        )
-        biz_name = df_biz[df_biz["business_id"] == business_id]["name"].iloc[0]
-        title = f"Peak Hours — {biz_name}"
-    else:
-        df_plot = df_heat[df_heat["city_clean"] == city].copy()
-        title = f"Peak Hours — {city} (all businesses)"
-
-    df_plot["hour_int"] = df_plot["peak_hour"].apply(hour_to_int)
-    df_plot["hour_label"] = df_plot["hour_int"].map(HOUR_LABELS)
-    df_plot["weekday"] = pd.Categorical(df_plot["weekday"], categories=WEEKDAY_ORDER, ordered=True)
+def update_heatmap(city, segment):
+    df = filter_src(city, segment)
 
     pivot = (
-        df_plot.pivot_table(
-            index="weekday",
-            columns="hour_int",
-            values="total_checkins",
-            aggfunc="sum",
-            fill_value=0,
-        )
+        df.groupby(["weekday", "hour_int"])["total_checkins"]
+        .sum()
+        .unstack(fill_value=0)
         .reindex(WEEKDAY_ORDER)
     )
+    hour_cols = sorted(pivot.columns)
+    pivot = pivot[hour_cols]
     pivot.columns = [HOUR_LABELS.get(c, str(c)) for c in pivot.columns]
+
+    seg_label = next((o["label"] for o in SEGMENT_OPTIONS if o["value"] == segment), segment)
+    title = f"Traffic by Hour & Weekday — {city}"
+    if segment != "all":
+        title += f" · {seg_label}"
 
     fig = go.Figure(data=go.Heatmap(
         z=pivot.values,
@@ -175,15 +156,15 @@ def update_heatmap(city, business_id):
         colorscale="YlOrRd",
         hoverongaps=False,
         hovertemplate="<b>%{y} %{x}</b><br>Check-ins: %{z:,}<extra></extra>",
-        colorbar=dict(title="Check-ins", thickness=14),
+        colorbar=dict(title="Check-ins", thickness=14, len=0.8),
     ))
     fig.update_layout(
         plot_bgcolor="white",
         paper_bgcolor="white",
         margin=dict(l=10, r=10, t=10, b=10),
         xaxis=dict(title="Hour of Day", tickangle=-45, tickfont=dict(size=10)),
-        yaxis=dict(title=""),
-        height=320,
+        yaxis=dict(title="", tickfont=dict(size=11)),
+        height=340,
     )
     return fig, title
 
@@ -191,29 +172,23 @@ def update_heatmap(city, business_id):
 @callback(
     Output("peaks-by-day", "figure"),
     Input("peaks-city", "value"),
-    Input("peaks-business", "value"),
+    Input("peaks-segment", "value"),
 )
-def update_by_day(city, business_id):
-    if business_id:
-        from pathlib import Path
-        src = Path(__file__).parent.parent / "data" / "processed" / "yelp_business_data_cleaned.csv"
-        df_src = pd.read_csv(src, low_memory=False)
-        df_plot = df_src[df_src["business_id"] == business_id].dropna(subset=["weekday"])
-    else:
-        df_plot = df_heat[df_heat["city_clean"] == city]
+def update_by_day(city, segment):
+    df = filter_src(city, segment)
 
     daily = (
-        df_plot.groupby("weekday")["total_checkins"]
+        df.groupby("weekday")["total_checkins"]
         .sum()
         .reindex(WEEKDAY_ORDER)
         .reset_index()
     )
-    color = CITY_COLORS.get(city, "#2c7be5")
+    color = CITY_COLORS.get(city, "#2c7be5") if city != "Both" else "#D52B1E"
 
     fig = px.bar(
         daily, x="weekday", y="total_checkins",
         color="total_checkins",
-        color_continuous_scale=["#d0e8ff", color],
+        color_continuous_scale=["#fdd5d2", color],
         labels={"weekday": "", "total_checkins": "Check-ins"},
         text="total_checkins",
     )
@@ -226,46 +201,9 @@ def update_by_day(city, business_id):
     fig.update_layout(
         plot_bgcolor="white",
         paper_bgcolor="white",
-        margin=dict(l=10, r=10, t=10, b=10),
+        margin=dict(l=10, r=10, t=10, b=30),
         xaxis=dict(categoryorder="array", categoryarray=WEEKDAY_ORDER),
         yaxis=dict(showgrid=True, gridcolor="#f0f0f0", title=""),
-        height=320,
-    )
-    return fig
-
-
-@callback(
-    Output("peaks-hourly-compare", "figure"),
-    Input("peaks-city", "value"),
-)
-def update_hourly_compare(_city):
-    """Line chart comparing hourly traffic for Toronto vs Montreal."""
-    hourly = (
-        df_heat.groupby(["city_clean", "hour_int"])["total_checkins"]
-        .sum()
-        .reset_index()
-    )
-    hourly["hour_label"] = hourly["hour_int"].map(HOUR_LABELS)
-    hourly = hourly.sort_values("hour_int")
-
-    fig = px.line(
-        hourly, x="hour_label", y="total_checkins",
-        color="city_clean",
-        color_discrete_map=CITY_COLORS,
-        markers=True,
-        labels={"hour_label": "Hour of Day", "total_checkins": "Total Check-ins", "city_clean": "City"},
-    )
-    fig.update_traces(line=dict(width=2.5), marker=dict(size=6))
-    fig.update_layout(
-        plot_bgcolor="white",
-        paper_bgcolor="white",
-        margin=dict(l=10, r=10, t=10, b=10),
-        legend=dict(title=""),
-        xaxis=dict(
-            categoryorder="array",
-            categoryarray=[HOUR_LABELS[i] for i in range(24)],
-        ),
-        yaxis=dict(showgrid=True, gridcolor="#f0f0f0"),
-        height=300,
+        height=340,
     )
     return fig

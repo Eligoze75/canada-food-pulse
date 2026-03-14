@@ -24,6 +24,22 @@ body {
     min-height: 100vh;
 }
 
+/* ---- Canadian flag red navbar ---- */
+.cfp-navbar.navbar {
+    background-color: #D52B1E !important;
+}
+
+.cfp-navbar .nav-link,
+.cfp-navbar .navbar-brand {
+    color: rgba(255, 255, 255, 0.92) !important;
+}
+
+.cfp-navbar .nav-link:hover,
+.cfp-navbar .nav-link:focus {
+    color: #ffffff !important;
+    text-decoration: underline;
+}
+
 /* Page container padding */
 .page-content {
     padding: 1.75rem 2rem;
