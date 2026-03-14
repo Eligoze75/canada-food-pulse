@@ -1,11 +1,4 @@
-"""
-Peak Hours Page — weekday × hour heatmap + busiest day bar chart.
-
-Route: /peak-hours
-"""
-
 import pathlib
-
 import dash
 import dash_bootstrap_components as dbc
 import pandas as pd
@@ -14,14 +7,8 @@ import plotly.express as px
 from dash import Input, Output, callback, dcc, html
 
 dash.register_page(__name__, path="/peak-hours", name="Peak Hours", order=1)
-
-# ---------------------------------------------------------------------------
-# Data
-# ---------------------------------------------------------------------------
-
 DATA_DIR = pathlib.Path(__file__).parent.parent / "data" / "processed"
 
-# Load only the columns needed for peak analysis (104k rows, 5 cols — fast)
 df_src = pd.read_csv(
     DATA_DIR / "yelp_business_data_cleaned.csv",
     usecols=["categories", "city_clean", "weekday", "peak_hour", "total_checkins"],
@@ -34,12 +21,12 @@ CITIES = ["Both", "Toronto", "Montreal"]
 CITY_COLORS = {"Toronto": "#2c7be5", "Montreal": "#e5522c"}
 
 SEGMENT_OPTIONS = [
-    {"label": "All Food & Drink",   "value": "all"},
-    {"label": "Restaurants",        "value": "Restaurants"},
-    {"label": "Cafes & Coffee",     "value": "Cafes"},
-    {"label": "Bars",               "value": "Bars"},
-    {"label": "Fast Food",          "value": "Fast Food"},
-    {"label": "Bakeries",           "value": "Bakeries"},
+    {"label": "All Food & Drink", "value": "all"},
+    {"label": "Restaurants", "value": "Restaurants"},
+    {"label": "Cafes & Coffee", "value": "Cafes"},
+    {"label": "Bars", "value": "Bars"},
+    {"label": "Fast Food", "value": "Fast Food"},
+    {"label": "Bakeries", "value": "Bakeries"},
     {"label": "Breakfast & Brunch", "value": "Breakfast & Brunch"},
 ]
 
@@ -52,65 +39,92 @@ def hour_to_int(h: str) -> int:
 
 
 def fmt_hour(h: int) -> str:
-    if h == 0:      return "12am"
-    elif h < 12:    return f"{h}am"
-    elif h == 12:   return "12pm"
-    else:           return f"{h - 12}pm"
+    if h == 0:
+        return "12am"
+    elif h < 12:
+        return f"{h}am"
+    elif h == 12:
+        return "12pm"
+    else:
+        return f"{h - 12}pm"
 
 
 HOUR_LABELS = {i: fmt_hour(i) for i in range(24)}
 
 df_src["hour_int"] = df_src["peak_hour"].apply(hour_to_int)
 
-# ---------------------------------------------------------------------------
-# Layout
-# ---------------------------------------------------------------------------
-
-layout = html.Div([
-    html.Div([
-        html.H2("Peak Hours"),
-        html.P("City-wide traffic patterns — when are restaurants and cafes busiest?"),
-    ], className="page-header"),
-
-    html.Div([
-        html.Label("City"),
-        dcc.Dropdown(
-            id="peaks-city",
-            options=[{"label": c, "value": c} for c in CITIES],
-            value="Both",
-            clearable=False,
-            style={"minWidth": "160px"},
+layout = html.Div(
+    [
+        html.Div(
+            [
+                html.H2("Peak Hours"),
+                html.P(
+                    "City-wide traffic patterns — when are restaurants and cafes busiest?"
+                ),
+            ],
+            className="page-header",
         ),
-        html.Label("Segment", style={"marginLeft": "1rem"}),
-        dcc.Dropdown(
-            id="peaks-segment",
-            options=SEGMENT_OPTIONS,
-            value="all",
-            clearable=False,
-            style={"minWidth": "200px"},
+        html.Div(
+            [
+                html.Label("City"),
+                dcc.Dropdown(
+                    id="peaks-city",
+                    options=[{"label": c, "value": c} for c in CITIES],
+                    value="Both",
+                    clearable=False,
+                    style={"minWidth": "160px"},
+                ),
+                html.Label("Segment", style={"marginLeft": "1rem"}),
+                dcc.Dropdown(
+                    id="peaks-segment",
+                    options=SEGMENT_OPTIONS,
+                    value="all",
+                    clearable=False,
+                    style={"minWidth": "200px"},
+                ),
+            ],
+            className="filter-bar",
         ),
-    ], className="filter-bar"),
+        dbc.Row(
+            [
+                dbc.Col(
+                    [
+                        html.Div(
+                            [
+                                html.Div(
+                                    id="peaks-heatmap-title", className="section-title"
+                                ),
+                                dcc.Graph(
+                                    id="peaks-heatmap", config={"displayModeBar": False}
+                                ),
+                            ],
+                            className="chart-card",
+                        ),
+                    ],
+                    md=8,
+                ),
+                dbc.Col(
+                    [
+                        html.Div(
+                            [
+                                html.Div(
+                                    "Busiest Day of the Week", className="section-title"
+                                ),
+                                dcc.Graph(
+                                    id="peaks-by-day", config={"displayModeBar": False}
+                                ),
+                            ],
+                            className="chart-card",
+                        ),
+                    ],
+                    md=4,
+                ),
+            ]
+        ),
+    ],
+    className="page-content",
+)
 
-    dbc.Row([
-        dbc.Col([
-            html.Div([
-                html.Div(id="peaks-heatmap-title", className="section-title"),
-                dcc.Graph(id="peaks-heatmap", config={"displayModeBar": False}),
-            ], className="chart-card"),
-        ], md=8),
-        dbc.Col([
-            html.Div([
-                html.Div("Busiest Day of the Week", className="section-title"),
-                dcc.Graph(id="peaks-by-day", config={"displayModeBar": False}),
-            ], className="chart-card"),
-        ], md=4),
-    ]),
-], className="page-content")
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 
 def filter_src(city: str, segment: str) -> pd.DataFrame:
     df = df_src
@@ -120,10 +134,6 @@ def filter_src(city: str, segment: str) -> pd.DataFrame:
         df = df[df["categories"].fillna("").str.contains(segment, case=False)]
     return df
 
-
-# ---------------------------------------------------------------------------
-# Callbacks
-# ---------------------------------------------------------------------------
 
 @callback(
     Output("peaks-heatmap", "figure"),
@@ -144,20 +154,24 @@ def update_heatmap(city, segment):
     pivot = pivot[hour_cols]
     pivot.columns = [HOUR_LABELS.get(c, str(c)) for c in pivot.columns]
 
-    seg_label = next((o["label"] for o in SEGMENT_OPTIONS if o["value"] == segment), segment)
+    seg_label = next(
+        (o["label"] for o in SEGMENT_OPTIONS if o["value"] == segment), segment
+    )
     title = f"Traffic by Hour & Weekday — {city}"
     if segment != "all":
         title += f" · {seg_label}"
 
-    fig = go.Figure(data=go.Heatmap(
-        z=pivot.values,
-        x=pivot.columns.tolist(),
-        y=pivot.index.tolist(),
-        colorscale="YlOrRd",
-        hoverongaps=False,
-        hovertemplate="<b>%{y} %{x}</b><br>Check-ins: %{z:,}<extra></extra>",
-        colorbar=dict(title="Check-ins", thickness=14, len=0.8),
-    ))
+    fig = go.Figure(
+        data=go.Heatmap(
+            z=pivot.values,
+            x=pivot.columns.tolist(),
+            y=pivot.index.tolist(),
+            colorscale="YlOrRd",
+            hoverongaps=False,
+            hovertemplate="<b>%{y} %{x}</b><br>Check-ins: %{z:,}<extra></extra>",
+            colorbar=dict(title="Check-ins", thickness=14, len=0.8),
+        )
+    )
     fig.update_layout(
         plot_bgcolor="white",
         paper_bgcolor="white",
@@ -186,7 +200,9 @@ def update_by_day(city, segment):
     color = CITY_COLORS.get(city, "#2c7be5") if city != "Both" else "#D52B1E"
 
     fig = px.bar(
-        daily, x="weekday", y="total_checkins",
+        daily,
+        x="weekday",
+        y="total_checkins",
         color="total_checkins",
         color_continuous_scale=["#fdd5d2", color],
         labels={"weekday": "", "total_checkins": "Check-ins"},

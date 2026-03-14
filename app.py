@@ -10,11 +10,7 @@ app = Dash(
     meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1"}],
 )
 
-server = app.server  # required for Plotly Cloud deployment
-
-# ---------------------------------------------------------------------------
-# Navbar
-# ---------------------------------------------------------------------------
+server = app.server
 
 navbar = dbc.NavbarSimple(
     children=[
@@ -43,10 +39,6 @@ navbar = dbc.NavbarSimple(
     className="mb-0 shadow-sm cfp-navbar",
     fluid=True,
 )
-
-# ---------------------------------------------------------------------------
-# Layout
-# ---------------------------------------------------------------------------
 
 app.layout = html.Div(
     [

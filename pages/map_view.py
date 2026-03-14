@@ -1,11 +1,4 @@
-"""
-Map Page — density heatmap of business locations + neighbourhood KPIs.
-
-Route: /map
-"""
-
 import pathlib
-
 import dash
 import dash_bootstrap_components as dbc
 import pandas as pd
@@ -13,10 +6,6 @@ import plotly.express as px
 from dash import Input, Output, callback, dcc, html
 
 dash.register_page(__name__, path="/map", name="Map", order=2)
-
-# ---------------------------------------------------------------------------
-# Data
-# ---------------------------------------------------------------------------
 
 DATA_DIR = pathlib.Path(__file__).parent.parent / "data" / "processed"
 df_biz = pd.read_csv(DATA_DIR / "df_businesses.csv", low_memory=False)
@@ -27,74 +16,92 @@ CITIES = ["Both", "Toronto", "Montreal"]
 CITY_COLORS = {"Toronto": "#2c7be5", "Montreal": "#e5522c"}
 
 CITY_CENTERS = {
-    "Toronto":  {"lat": 43.6532, "lon": -79.3832, "zoom": 11},
+    "Toronto": {"lat": 43.6532, "lon": -79.3832, "zoom": 11},
     "Montreal": {"lat": 45.5017, "lon": -73.5673, "zoom": 11},
-    "Both":     {"lat": 44.57,   "lon": -77.3,    "zoom": 5},
+    "Both": {"lat": 44.57, "lon": -77.3, "zoom": 5},
 }
 
 SEGMENT_OPTIONS = [
     {"label": "All Food & Drink", "value": "all"},
-    {"label": "Restaurants",      "value": "Restaurants"},
-    {"label": "Cafes & Coffee",   "value": "Cafes"},
-    {"label": "Bars",             "value": "Bars"},
-    {"label": "Fast Food",        "value": "Fast Food"},
-    {"label": "Bakeries",         "value": "Bakeries"},
+    {"label": "Restaurants", "value": "Restaurants"},
+    {"label": "Cafes & Coffee", "value": "Cafes"},
+    {"label": "Bars", "value": "Bars"},
+    {"label": "Fast Food", "value": "Fast Food"},
+    {"label": "Bakeries", "value": "Bakeries"},
     {"label": "Breakfast & Brunch", "value": "Breakfast & Brunch"},
 ]
 
-# ---------------------------------------------------------------------------
-# Layout
-# ---------------------------------------------------------------------------
-
-layout = html.Div([
-    html.Div([
-        html.H2("Business Map"),
-        html.P("Hotspots of food & drink across Toronto and Montreal — density reflects concentration of businesses."),
-    ], className="page-header"),
-
-    html.Div([
-        html.Label("City"),
-        dcc.Dropdown(
-            id="map-city",
-            options=[{"label": c, "value": c} for c in CITIES],
-            value="Both",
-            clearable=False,
-            style={"minWidth": "150px"},
+layout = html.Div(
+    [
+        html.Div(
+            [
+                html.H2("Business Map"),
+                html.P(
+                    "Hotspots of food & drink across Toronto and Montreal — density reflects concentration of businesses."
+                ),
+            ],
+            className="page-header",
         ),
-        html.Label("Segment", style={"marginLeft": "1rem"}),
-        dcc.Dropdown(
-            id="map-segment",
-            options=SEGMENT_OPTIONS,
-            value="all",
-            clearable=False,
-            style={"minWidth": "200px"},
+        html.Div(
+            [
+                html.Label("City"),
+                dcc.Dropdown(
+                    id="map-city",
+                    options=[{"label": c, "value": c} for c in CITIES],
+                    value="Both",
+                    clearable=False,
+                    style={"minWidth": "150px"},
+                ),
+                html.Label("Segment", style={"marginLeft": "1rem"}),
+                dcc.Dropdown(
+                    id="map-segment",
+                    options=SEGMENT_OPTIONS,
+                    value="all",
+                    clearable=False,
+                    style={"minWidth": "200px"},
+                ),
+                html.Label("Min Reviews", style={"marginLeft": "1rem"}),
+                dcc.Slider(
+                    id="map-min-reviews",
+                    min=0,
+                    max=200,
+                    step=10,
+                    value=0,
+                    marks={0: "0", 50: "50", 100: "100", 200: "200"},
+                    tooltip={"placement": "bottom"},
+                ),
+            ],
+            className="filter-bar",
         ),
-        html.Label("Min Reviews", style={"marginLeft": "1rem"}),
-        dcc.Slider(
-            id="map-min-reviews",
-            min=0, max=200, step=10, value=0,
-            marks={0: "0", 50: "50", 100: "100", 200: "200"},
-            tooltip={"placement": "bottom"},
+        dbc.Row(
+            [
+                dbc.Col(
+                    [
+                        html.Div(
+                            [
+                                html.Div(id="map-title", className="section-title"),
+                                dcc.Graph(
+                                    id="main-map",
+                                    config={"scrollZoom": True, "displayModeBar": True},
+                                ),
+                            ],
+                            className="chart-card map-container",
+                        ),
+                    ],
+                    md=8,
+                ),
+                dbc.Col(
+                    [
+                        html.Div(id="neighbourhood-kpis"),
+                    ],
+                    md=4,
+                ),
+            ]
         ),
-    ], className="filter-bar"),
+    ],
+    className="page-content",
+)
 
-    dbc.Row([
-        dbc.Col([
-            html.Div([
-                html.Div(id="map-title", className="section-title"),
-                dcc.Graph(id="main-map", config={"scrollZoom": True, "displayModeBar": True}),
-            ], className="chart-card map-container"),
-        ], md=8),
-        dbc.Col([
-            html.Div(id="neighbourhood-kpis"),
-        ], md=4),
-    ]),
-], className="page-content")
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 
 def filter_map_data(city: str, segment: str, min_reviews: int) -> pd.DataFrame:
     df = df_biz.copy()
@@ -111,16 +118,17 @@ def neighbourhood_kpi_cards(df: pd.DataFrame) -> list:
 
     # --- Most places (top 3) ---
     most_places = (
-        df_n.groupby("neighborhood").size()
-        .nlargest(3).reset_index(name="count")
+        df_n.groupby("neighborhood").size().nlargest(3).reset_index(name="count")
     )
 
     # --- Best rated (top 3, min 3 businesses) ---
     best_rated = (
         df_n.groupby("neighborhood")
         .filter(lambda g: len(g) >= 3)
-        .groupby("neighborhood")["stars"].mean()
-        .nlargest(3).reset_index()
+        .groupby("neighborhood")["stars"]
+        .mean()
+        .nlargest(3)
+        .reset_index()
     )
     best_rated["stars"] = best_rated["stars"].round(2)
 
@@ -131,43 +139,60 @@ def neighbourhood_kpi_cards(df: pd.DataFrame) -> list:
     df_exp["cuisine"] = df_exp["cuisine"].str.strip()
     most_variety = (
         df_exp[df_exp["cuisine"] != ""]
-        .groupby("neighborhood")["cuisine"].nunique()
-        .nlargest(3).reset_index(name="cuisines")
+        .groupby("neighborhood")["cuisine"]
+        .nunique()
+        .nlargest(3)
+        .reset_index(name="cuisines")
     )
 
     medals = ["🥇", "🥈", "🥉"]
 
     def kpi_card(title: str, rows: list) -> html.Div:
-        return html.Div([
-            html.Div(title, className="section-title"),
-            *[
-                html.Div([
-                    html.Span(f"{medals[i]}  {name}",
-                              style={"fontWeight": "600", "fontSize": "0.85rem"}),
-                    html.Span(value,
-                              style={"float": "right", "color": "#6c757d", "fontSize": "0.83rem"}),
-                ], style={"padding": "5px 0", "borderBottom": "1px solid #f0f0f0"})
-                for i, (name, value) in enumerate(rows)
+        return html.Div(
+            [
+                html.Div(title, className="section-title"),
+                *[
+                    html.Div(
+                        [
+                            html.Span(
+                                f"{medals[i]}  {name}",
+                                style={"fontWeight": "600", "fontSize": "0.85rem"},
+                            ),
+                            html.Span(
+                                value,
+                                style={
+                                    "float": "right",
+                                    "color": "#6c757d",
+                                    "fontSize": "0.83rem",
+                                },
+                            ),
+                        ],
+                        style={"padding": "5px 0", "borderBottom": "1px solid #f0f0f0"},
+                    )
+                    for i, (name, value) in enumerate(rows)
+                ],
             ],
-        ], className="chart-card", style={"marginBottom": "1rem"})
+            className="chart-card",
+            style={"marginBottom": "1rem"},
+        )
 
-    places_rows = [(r["neighborhood"], f"{r['count']:,} places")
-                   for _, r in most_places.iterrows()]
-    rated_rows  = [(r["neighborhood"], f"{r['stars']:.2f} ★")
-                   for _, r in best_rated.iterrows()]
-    variety_rows = [(r["neighborhood"], f"{r['cuisines']} cuisines")
-                    for _, r in most_variety.iterrows()]
+    places_rows = [
+        (r["neighborhood"], f"{r['count']:,} places") for _, r in most_places.iterrows()
+    ]
+    rated_rows = [
+        (r["neighborhood"], f"{r['stars']:.2f} ★") for _, r in best_rated.iterrows()
+    ]
+    variety_rows = [
+        (r["neighborhood"], f"{r['cuisines']} cuisines")
+        for _, r in most_variety.iterrows()
+    ]
 
     return [
-        kpi_card("Most Places",  places_rows),
-        kpi_card("Best Rated",   rated_rows),
+        kpi_card("Most Places", places_rows),
+        kpi_card("Best Rated", rated_rows),
         kpi_card("Most Variety", variety_rows),
     ]
 
-
-# ---------------------------------------------------------------------------
-# Callbacks
-# ---------------------------------------------------------------------------
 
 @callback(
     Output("main-map", "figure"),
@@ -179,7 +204,9 @@ def neighbourhood_kpi_cards(df: pd.DataFrame) -> list:
 def update_map(city, segment, min_reviews):
     df = filter_map_data(city, segment, min_reviews)
     center = CITY_CENTERS[city]
-    seg_label = next((o["label"] for o in SEGMENT_OPTIONS if o["value"] == segment), segment)
+    seg_label = next(
+        (o["label"] for o in SEGMENT_OPTIONS if o["value"] == segment), segment
+    )
     title = f"{seg_label} hotspots — {city} ({len(df):,} locations)"
 
     fig = px.density_mapbox(

@@ -1,16 +1,3 @@
-"""
-Preprocessing script for Canada Food Pulse.
-
-Reads:  data/processed/yelp_business_data_cleaned.csv  (104,665 rows × 18 cols)
-Writes:
-  - data/processed/df_businesses.csv      (1 row per business, ~23k rows)
-  - data/processed/df_cuisine_stats.csv   (cuisine × city aggregates)
-  - data/processed/df_peak_heatmap.csv    (city-level weekday × hour heatmap)
-
-Run from the project root:
-    python scripts/preprocess.py
-"""
-
 import pathlib
 import numpy as np
 import pandas as pd
@@ -95,13 +82,25 @@ def load_source() -> pd.DataFrame:
 # df_businesses.csv — 1 row per business
 # ---------------------------------------------------------------------------
 
+
 def build_businesses(df: pd.DataFrame) -> pd.DataFrame:
     print("Building df_businesses ...")
 
     business_cols = [
-        "business_id", "name", "neighborhood", "address", "city",
-        "state", "postal_code", "latitude", "longitude", "stars",
-        "review_count", "is_open", "categories", "city_clean",
+        "business_id",
+        "name",
+        "neighborhood",
+        "address",
+        "city",
+        "state",
+        "postal_code",
+        "latitude",
+        "longitude",
+        "stars",
+        "review_count",
+        "is_open",
+        "categories",
+        "city_clean",
     ]
 
     # Deduplicate: keep first occurrence for static fields
@@ -142,10 +141,13 @@ def build_businesses(df: pd.DataFrame) -> pd.DataFrame:
 # df_cuisine_stats.csv — cuisine × city aggregates
 # ---------------------------------------------------------------------------
 
+
 def build_cuisine_stats(df_biz: pd.DataFrame) -> pd.DataFrame:
     print("Building df_cuisine_stats ...")
 
-    df_exp = df_biz[["business_id", "city_clean", "stars", "review_count", "categories"]].copy()
+    df_exp = df_biz[
+        ["business_id", "city_clean", "stars", "review_count", "categories"]
+    ].copy()
     df_exp["cuisine"] = df_exp["categories"].str.split(";")
     df_exp = df_exp.explode("cuisine")
     df_exp["cuisine"] = df_exp["cuisine"].str.strip()
@@ -172,6 +174,7 @@ def build_cuisine_stats(df_biz: pd.DataFrame) -> pd.DataFrame:
 # df_peak_heatmap.csv — city-level weekday × hour heatmap
 # ---------------------------------------------------------------------------
 
+
 def build_peak_heatmap(df: pd.DataFrame) -> pd.DataFrame:
     print("Building df_peak_heatmap ...")
 
@@ -190,10 +193,6 @@ def build_peak_heatmap(df: pd.DataFrame) -> pd.DataFrame:
     print(f"  {len(df_heat):,} heatmap rows")
     return df_heat
 
-
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
 
 def main():
     df = load_source()
